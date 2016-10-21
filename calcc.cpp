@@ -9,12 +9,20 @@
 #include "llvm/Support/raw_ostream.h"
 #include <cassert>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include "calcc/AST.h"
+#include "calcc/parser.h"
+#include "calcc/error.h"
+#include "calcc/asttools/referrer.h"
+#include "calcc/asttools/checker.h"
+#include "calcc/asttools/dumper.h"
 
 using namespace llvm;
 using namespace std;
 
 static LLVMContext C;
-static IRBuilder<NoFolder> Builder(C);
+static IRBuilder<> Builder(C);
 static std::unique_ptr<Module> M = llvm::make_unique<Module>("calc", C);
 
 static int compile() {
@@ -25,12 +33,45 @@ static int compile() {
   BasicBlock *BB = BasicBlock::Create(C, "entry", F);
   Builder.SetInsertPoint(BB);
 
-  // TODO: parse the source program
+  // parse the source program
+  calcc::ast::Expr *astp;
+  try {
+    astp = calcc::parser::parse(cin);
+  } catch (calcc::error::parser &e) {
+    cout << e.what() << endl;
+    return 1;
+  }
+  // Link identifier to definition
+  try {
+    calcc::ast::declmap d;
+    calcc::ast::Referrer ref;
+    ref.run(astp,d);
+  } catch  (calcc::error::scanner &e) {
+    cout << e.what() << endl;
+    return 1;
+  }
+  try {
+    calcc::ast::Dumper dump;
+    dump.run(astp, cout);
+    cout.flush();
+  } catch (calcc::error::scanner &e) {
+    cout << e.what() << endl;
+    return 1;
+  }
+  // Basic Type checking
+  try {
+    int d;
+    calcc::ast::Checker chk;
+    chk.run(astp,d);
+  } catch  (calcc::error::scanner &e) {
+    cout << e.what() << endl;
+    return 1;
+  }
   // TODO: generate correct LLVM instead of just an empty function
 
   Value *RetVal = ConstantInt::get(C, APInt(64, 0));
   Builder.CreateRet(RetVal);
-  assert(verifyModule(M));
+  assert(verifyModule(*M));
   M->dump();
   return 0;
 }
