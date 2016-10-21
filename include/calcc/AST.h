@@ -44,6 +44,17 @@ namespace calcc {
       virtual EXPR_TYPE getExprType() = 0;
       virtual VAL_TYPE getValType() = 0;
     };
+    class ValPtr : public Expr {
+    private:
+      llvm::Value* val;
+      llvm::BasicBlock* BB;
+    public:
+      ValPtr(llvm::Value* ival, llvm::BasicBlock* iBB) : val(ival),BB(iBB) { }
+      virtual EXPR_TYPE getExprType() {return EXPR_VALP;}
+      virtual VAL_TYPE getValType() {return VAL_UNKNOWN;}
+      llvm::Value* getValue() {return val;}
+      llvm::BasicBlock* getBasicBlock() {return BB;}
+    };
     class Decl : public Expr {
     private:
       std::string name;
@@ -54,9 +65,13 @@ namespace calcc {
       std::string getName() {return name;}
     };
     class VDecl : public Decl {
+    private:
+      ValPtr *vptr;
     public:
       VDecl(std::string iname, VAL_TYPE ivt) : Decl(iname,ivt) { }
       virtual EXPR_TYPE getExprType() {return EXPR_VDECL;}
+      void setVPtr(ValPtr* vp) { vptr = vp; }
+      ValPtr* getVPtr() { return vptr; }
     };
     class FDecl : public Decl {
     private:
@@ -67,15 +82,6 @@ namespace calcc {
       virtual EXPR_TYPE getExprType() {return EXPR_FDECL;}
       Expr* getBody() { return body; }
       std::vector<VDecl*> getParams() {return params;}
-    };
-    class ValPtr : public Expr {
-    private:
-      llvm::Value* val;
-    public:
-      ValPtr(llvm::Value* ival) : val(ival) { }
-      virtual EXPR_TYPE getExprType() {return EXPR_VALP;}
-      virtual VAL_TYPE getValType() {return VAL_UNKNOWN;}
-      llvm::Value* getValue() {return val;}
     };
     class BinaryOp : public Expr {
     private:

@@ -38,9 +38,12 @@ void skipBlank(istream &sin) {
   do {
     sin.get(c);
     if (c=='#' && lc == '\n') skipComments(sin);
-    if ((!isblank(c) && c!='\n')||sin.eof())
+    else if (!isblank(c) && c!='\n')
       break;
-    lc = c;
+    else
+      lc = c;
+    if (sin.eof())
+      return;
   } while (1);
   sin.unget();
 }
@@ -55,7 +58,10 @@ string getToken(istream &sin) {
   // Check if is braces
   nextChar(sin,c);
   res += c;
-  if (c=='(' || c == ')') return res;
+  if (c=='(' || c == ')') {
+    sin.get(c);
+    return res;
+  }
   while (nextChar(sin, c))
     res += c;
   // Ignore remaining blanks
@@ -150,6 +156,7 @@ Expr* parseExpr(istream &sin, bool paren) {
 // Parse the main file
 Expr* calcc::parser::parse(istream &sin) {
   Expr* res = NULL;
+  lc = '\n';
   res = parseExpr(sin, false);
   expect(sin, "");
   std::vector<VDecl*> params;
