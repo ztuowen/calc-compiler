@@ -47,13 +47,11 @@ namespace calcc {
     class ValPtr : public Expr {
     private:
       llvm::Value* val;
-      llvm::BasicBlock* BB;
     public:
-      ValPtr(llvm::Value* ival, llvm::BasicBlock* iBB) : val(ival),BB(iBB) { }
+      ValPtr(llvm::Value* ival) : val(ival) { }
       virtual EXPR_TYPE getExprType() {return EXPR_VALP;}
       virtual VAL_TYPE getValType() {return VAL_UNKNOWN;}
       llvm::Value* getValue() {return val;}
-      llvm::BasicBlock* getBasicBlock() {return BB;}
     };
     class Decl : public Expr {
     private:

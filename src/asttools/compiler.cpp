@@ -33,7 +33,7 @@ Expr* Compiler::scan(FDecl *e, valmap &out) {
 
   auto it = F->arg_begin();
   for (int i = 0; i<p.size(); ++i, ++it)
-    p[i]->setVPtr(new ValPtr(&*it, NULL)); // What to do for arguments' basic block
+    p[i]->setVPtr(new ValPtr(&*it));
 
   calcc::Builder.SetInsertPoint(BB);
 
@@ -46,24 +46,24 @@ Expr* Compiler::scan(FDecl *e, valmap &out) {
 }
 
 Expr* Compiler::scan(IntLiteral *e, valmap &out) {
-  return new ValPtr(llvm::ConstantInt::get(C, e->getValue()), BB);
+  return new ValPtr(llvm::ConstantInt::get(C, e->getValue()));
 }
 
 Expr* Compiler::scan(BinaryOp *e, valmap &out) {
   ValPtr* lhs = (ValPtr*)Scanner::run(e->getLHS(), out);
   ValPtr* rhs = (ValPtr*)Scanner::run(e->getRHS(), out);
   switch (e->getOP()) {
-    case BINOP_PLUS: return new ValPtr(Builder.CreateAdd(lhs->getValue(),rhs->getValue()),BB);
-    case BINOP_MINUS: return new ValPtr(Builder.CreateSub(lhs->getValue(),rhs->getValue()),BB);
-    case BINOP_MULT: return new ValPtr(Builder.CreateMul(lhs->getValue(),rhs->getValue()),BB);
-    case BINOP_DIV: return new ValPtr(Builder.CreateSDiv(lhs->getValue(),rhs->getValue()),BB);
-    case BINOP_MOD: return new ValPtr(Builder.CreateSRem(lhs->getValue(),rhs->getValue()),BB);
+    case BINOP_PLUS: return new ValPtr(Builder.CreateAdd(lhs->getValue(),rhs->getValue()));
+    case BINOP_MINUS: return new ValPtr(Builder.CreateSub(lhs->getValue(),rhs->getValue()));
+    case BINOP_MULT: return new ValPtr(Builder.CreateMul(lhs->getValue(),rhs->getValue()));
+    case BINOP_DIV: return new ValPtr(Builder.CreateSDiv(lhs->getValue(),rhs->getValue()));
+    case BINOP_MOD: return new ValPtr(Builder.CreateSRem(lhs->getValue(),rhs->getValue()));
 
-    case BINOP_EQ: return new ValPtr(Builder.CreateICmpEQ(lhs->getValue(),rhs->getValue()),BB);
-    case BINOP_LT: return new ValPtr(Builder.CreateICmpSLT(lhs->getValue(),rhs->getValue()),BB);
-    case BINOP_LE: return new ValPtr(Builder.CreateICmpSLE(lhs->getValue(),rhs->getValue()),BB);
-    case BINOP_GT: return new ValPtr(Builder.CreateICmpSGT(lhs->getValue(),rhs->getValue()),BB);
-    case BINOP_GE: return new ValPtr(Builder.CreateICmpSGE(lhs->getValue(),rhs->getValue()),BB);
+    case BINOP_EQ: return new ValPtr(Builder.CreateICmpEQ(lhs->getValue(),rhs->getValue()));
+    case BINOP_LT: return new ValPtr(Builder.CreateICmpSLT(lhs->getValue(),rhs->getValue()));
+    case BINOP_LE: return new ValPtr(Builder.CreateICmpSLE(lhs->getValue(),rhs->getValue()));
+    case BINOP_GT: return new ValPtr(Builder.CreateICmpSGT(lhs->getValue(),rhs->getValue()));
+    case BINOP_GE: return new ValPtr(Builder.CreateICmpSGE(lhs->getValue(),rhs->getValue()));
     default:
       throw error::scanner("Unknown binary op type");
   }
@@ -72,9 +72,31 @@ Expr* Compiler::scan(BinaryOp *e, valmap &out) {
 
 Expr* Compiler::scan(If *e, valmap &out) {
   ValPtr* cnd = (ValPtr*)Scanner::run(e->getCnd(), out);
+  Function *F = BB->getParent();
+  BasicBlock* entry = BB;
+  BasicBlock* ethnB = BasicBlock::Create(calcc::C, "thenIf", F);
+  BB = ethnB;
+  calcc::Builder.SetInsertPoint(BB);
   ValPtr* thn = (ValPtr*)Scanner::run(e->getThn(), out);
+  BasicBlock* thnB = BB;
+  BasicBlock* eelsB = BasicBlock::Create(calcc::C, "elseIf", F);
+  BB = eelsB;
+  calcc::Builder.SetInsertPoint(BB);
   ValPtr* els = (ValPtr*)Scanner::run(e->getEls(), out);
-  return new ValPtr(Builder.CreateSelect(cnd->getValue(),thn->getValue(),els->getValue()),BB);
+  BasicBlock* elsB = BB;
+  BasicBlock* after = BasicBlock::Create(calcc::C, "afterIf", F);
+  Builder.SetInsertPoint(entry);
+  Builder.CreateCondBr(cnd->getValue(),ethnB,eelsB);
+  Builder.SetInsertPoint(thnB);
+  Builder.CreateBr(after);
+  Builder.SetInsertPoint(elsB);
+  Builder.CreateBr(after);
+  BB = after;
+  calcc::Builder.SetInsertPoint(BB);
+  PHINode* ret = Builder.CreatePHI(toType(e->getValType()),2);
+  ret->addIncoming(thn->getValue(), thnB);
+  ret->addIncoming(els->getValue(), elsB);
+  return new ValPtr(ret);
 }
 
 Expr* Compiler::scan(Ref *e, valmap &out) {

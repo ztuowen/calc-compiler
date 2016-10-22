@@ -23,13 +23,15 @@ namespace calcc {
   std::unique_ptr<Module> M = llvm::make_unique<Module>("calc", C);
 }
 
-static int compile() {
+static int compile(char* fname) {
 
   // parse the source program
   calcc::ast::Expr *astp;
   try {
-    ifstream fin("jdr1.calc");
+    ifstream fin;
+    fin.open(fname);
     astp = calcc::parser::parse(fin);
+    fin.close();
   } catch (calcc::error::parser &e) {
     cout << e.what() << endl;
     return 1;
@@ -61,16 +63,22 @@ static int compile() {
     cout << e.what() << endl;
     return 1;
   }
-  // TODO: generate correct LLVM instead of just an empty function
+  // From AST generate LLVM code
   calcc::M->setTargetTriple(llvm::sys::getProcessTriple());
   {
     calcc::ast::valmap vmap;
     calcc::ast::Compiler comp;
     comp.run(astp,vmap);
   }
-  //assert(verifyModule(*calcc::M));
+  assert(!verifyModule(*calcc::M,&llvm::outs()));
   calcc::M->dump();
   return 0;
 }
 
-int main(void) { return compile(); }
+int main(int argc, char** argv) {
+    if (argc<2) {
+        cout<<"Usage: "<<argv[0]<<" <Filename>"<<endl;
+        return 1;
+    }
+    return compile(argv[1]);
+}

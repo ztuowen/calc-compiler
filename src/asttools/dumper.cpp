@@ -30,7 +30,7 @@ Expr* Dumper::scan(FDecl *e, std::ostream &out) {
   }
   out<<") ";
   run(e->getBody(),out);
-  out <<")";
+  out <<")\n";
   return e;
 }
 
