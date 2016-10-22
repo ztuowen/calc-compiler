@@ -6,6 +6,7 @@
 #define CALCCOMPILER_CLACAST_H
 
 #include <string>
+#include <vector>
 #include "llvm/ADT/APInt.h"
 #include "llvm/IR/Value.h"
 

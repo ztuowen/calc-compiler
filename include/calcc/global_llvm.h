@@ -12,7 +12,7 @@
 
 namespace calcc {
   extern llvm::LLVMContext C;
-  extern llvm::IRBuilder<true, llvm::NoFolder> Builder;
+  extern llvm::IRBuilder<llvm::NoFolder> Builder;
   extern std::unique_ptr<llvm::Module> M;
 }
 

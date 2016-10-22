@@ -19,7 +19,7 @@ using namespace std;
 
 namespace calcc {
   LLVMContext C;
-  IRBuilder<true, NoFolder> Builder(C);
+  IRBuilder<NoFolder> Builder(C);
   std::unique_ptr<Module> M = llvm::make_unique<Module>("calc", C);
 }
 
