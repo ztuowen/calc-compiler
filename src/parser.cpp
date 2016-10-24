@@ -14,13 +14,13 @@ char lc;
 
 void skipComments(istream &sin) {
   char lc = '#';
-  while (lc != '\n' && !sin.eof())
+  while (lc != '\n' && sin.good())
     sin.get(lc);
 }
 
 int nextChar(istream &sin, char &c){
   sin.get(c);
-  if (sin.eof()) return 0;
+  if (!sin.good()) return 0;
   if (isblank(c) || c == '\n') {
     lc = c;
     return 0;
@@ -42,7 +42,7 @@ void skipBlank(istream &sin) {
       break;
     else
       lc = c;
-    if (sin.eof())
+    if (!sin.good())
       return;
   } while (1);
   sin.unget();
@@ -54,7 +54,7 @@ string getToken(istream &sin) {
   // Skip leading non-code
   skipBlank(sin);
   // Return NULL if at EOF
-  if (sin.eof()) return res;
+  if (!sin.good()) return res;
   // Check if is braces
   nextChar(sin,c);
   res += c;
