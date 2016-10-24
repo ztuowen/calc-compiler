@@ -24,13 +24,16 @@ namespace calcc {
 }
 
 static int compile(char* fname) {
-  // parse the source program
   calcc::ast::Expr *astp;
+  // parse the source program
   try {
-    ifstream fin;
-    fin.open(fname);
-    astp = calcc::parser::parse(fin);
-    fin.close();
+    if (fname) {
+      ifstream fin;
+      fin.open(fname);
+      astp = calcc::parser::parse(fin);
+      fin.close();
+    } else 
+      astp = calcc::parser::parse(cin);
   } catch (calcc::error::parser &e) {
     cout << e.what() << endl;
     return 1;
@@ -76,8 +79,7 @@ static int compile(char* fname) {
 
 int main(int argc, char** argv) {
     if (argc<2) {
-        cout<<"Usage: "<<argv[0]<<" <Filename>"<<endl;
-        return 1;
+        return compile(NULL);
     }
     return compile(argv[1]);
 }
