@@ -100,6 +100,9 @@ Expr* Compiler::scan(Ref *e, valmap &out) {
   if (d->getExprType() == EXPR_FDECL)
     throw error::scanner("Can't refer to a FDecl yet, Function name: " + e->getName());
   VDecl* vd = (VDecl*) d;
+  // Hacky trick so that it has initial value of 0
+  if (!vd->getVPtr())
+    vd->setVPtr(new ValPtr(llvm::ConstantInt::get(C, llvm::APInt(64,0,/*isSigned=*/true))));
   return vd->getVPtr();
 }
 

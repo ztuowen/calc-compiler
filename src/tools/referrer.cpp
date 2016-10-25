@@ -21,10 +21,20 @@ Expr* Referrer::scan(FDecl *e, declmap &out) {
     }
     out[p[i]->getName()] = p[i];
   }
+  // This is only needed because we don't want it to refer to other things
+  for (int i=0;i<10;++i) {
+    string name = "m"+to_string(i);
+    VDecl* m = new VDecl(name, VAL_INT, false);
+    out[name] = m;
+  }
   Expr *ret = Scanner<declmap>::scan(e,out);
   // Need explicit clean up
   for (int i=0;i<p.size();++i)
     out.erase(p[i]->getName());
+  for (int i=0;i<10;++i) {
+    string name = "m" + to_string(i);
+    out.erase(name);
+  }
   for (int i=0;i<oldp.size();++i)
     out[oldp[i]->getName()] = oldp[i];
   return ret;

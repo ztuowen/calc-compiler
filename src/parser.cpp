@@ -118,6 +118,7 @@ Expr* parseExpr(istream &sin, bool paren) {
   }
   // Int literal
   if ((token[0] == '-' && token.length()>0)|| isdigit(token[0])) {
+    if (paren) throw error::parser("Extra parenthesis over token: " + token);
     llvm::APInt val = parseInt(token);
     return new IntLiteral(val,VAL_INT);
   }
@@ -154,13 +155,16 @@ Expr* parseExpr(istream &sin, bool paren) {
     }
     // Bool literal
     if (token == "true") {
+      if (paren) throw error::parser("Extra parenthesis over token: " + token);
       llvm::APInt val(1,1);
       return new IntLiteral(val,VAL_BOOL);
     }
     if (token == "false") {
+      if (paren) throw error::parser("Extra parenthesis over token: " + token);
       llvm::APInt val(1,0);
       return new IntLiteral(val,VAL_BOOL);
     }
+    if (paren) throw error::parser("Extra parenthesis over token: " + token);
     return new Ref(token);
   } else {
     // Binary Operator
