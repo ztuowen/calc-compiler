@@ -12,6 +12,11 @@ using namespace llvm;
 
 static llvm::BasicBlock* BB;
 
+void setCurrentBlock(llvm::BasicBlock* b) {
+  BB = b;
+  calcc::Builder.SetInsertPoint(BB);
+}
+
 Type *toType(VAL_TYPE vt) {
   switch (vt) {
     case VAL_INT: return Type::getInt64Ty(calcc::C);
@@ -29,13 +34,11 @@ Expr* Compiler::scan(FDecl *e, valmap &out) {
   FunctionType *FT = FunctionType::get(toType(e->getValType()), params, false);
   Function *F = Function::Create(FT, Function::ExternalLinkage, "f", &*calcc::M);
 
-  BB = BasicBlock::Create(calcc::C, "entry", F);
+  setCurrentBlock(BasicBlock::Create(calcc::C, "entry", F));
 
   auto it = F->arg_begin();
   for (int i = 0; i<p.size(); ++i, ++it)
     p[i]->setVPtr(new ValPtr(&*it));
-
-  calcc::Builder.SetInsertPoint(BB);
 
   ValPtr* ret = (ValPtr*)Scanner::run(e->getBody(), out);
 
@@ -74,26 +77,19 @@ Expr* Compiler::scan(BinaryOp *e, valmap &out) {
 Expr* Compiler::scan(If *e, valmap &out) {
   ValPtr* cnd = (ValPtr*)Scanner::run(e->getCnd(), out);
   Function *F = BB->getParent();
-  BasicBlock* entry = BB;
-  BasicBlock* ethnB = BasicBlock::Create(calcc::C, "thenIf", F);
-  BB = ethnB;
-  calcc::Builder.SetInsertPoint(BB);
+  BasicBlock* thnB = BasicBlock::Create(calcc::C, "thenIf", F);
+  BasicBlock* elsB = BasicBlock::Create(calcc::C, "elseIf", F);
+  BasicBlock* aftB = BasicBlock::Create(calcc::C, "afterIf", F);
+  Builder.CreateCondBr(cnd->getValue(),thnB,elsB);
+  setCurrentBlock(thnB);
   ValPtr* thn = (ValPtr*)Scanner::run(e->getThn(), out);
-  BasicBlock* thnB = BB;
-  BasicBlock* eelsB = BasicBlock::Create(calcc::C, "elseIf", F);
-  BB = eelsB;
-  calcc::Builder.SetInsertPoint(BB);
+  Builder.CreateBr(aftB);
+  thnB = BB;
+  setCurrentBlock(elsB);
   ValPtr* els = (ValPtr*)Scanner::run(e->getEls(), out);
-  BasicBlock* elsB = BB;
-  BasicBlock* after = BasicBlock::Create(calcc::C, "afterIf", F);
-  Builder.SetInsertPoint(entry);
-  Builder.CreateCondBr(cnd->getValue(),ethnB,eelsB);
-  Builder.SetInsertPoint(thnB);
-  Builder.CreateBr(after);
-  Builder.SetInsertPoint(elsB);
-  Builder.CreateBr(after);
-  BB = after;
-  calcc::Builder.SetInsertPoint(BB);
+  Builder.CreateBr(aftB);
+  elsB = BB;
+  setCurrentBlock(aftB);
   PHINode* ret = Builder.CreatePHI(toType(e->getValType()),2);
   ret->addIncoming(thn->getValue(), thnB);
   ret->addIncoming(els->getValue(), elsB);
