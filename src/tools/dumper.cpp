@@ -52,3 +52,30 @@ Expr* Dumper::scan(VDecl *e, std::ostream &out) {
   out<<"(VDecl "<< e->getName()<< ": "<< e->getValType()<<")";
   return e;
 }
+
+ast::Expr* Dumper::scan(ast::Seq *e, std::ostream &out) {
+  out<<"(Seq :";
+  run(e->getLHS(), out);
+  out<<" ";
+  run(e->getRHS(), out);
+  out<<")";
+  return e;
+}
+
+ast::Expr* Dumper::scan(ast::Set *e, std::ostream &out) {
+  out<<"(Set :";
+  run(e->getExpr(), out);
+  out<<" ";
+  run(e->getRef(), out);
+  out<<")";
+  return e;
+}
+
+ast::Expr* Dumper::scan(ast::While *e, std::ostream &out) {
+  out<<"(While :";
+  run(e->getCnd(), out);
+  out<<" ";
+  run(e->getBdy(), out);
+  out<<")";
+  return e;
+}

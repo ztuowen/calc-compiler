@@ -22,6 +22,9 @@ namespace calcc {
       virtual ast::Expr* scan(ast::If* e, valmap &out);
       virtual ast::Expr* scan(ast::BinaryOp* e, valmap &out);
       virtual ast::Expr* scan(ast::ValPtr* e, valmap &out);
+      virtual ast::Expr* scan(ast::Set* e, valmap &out);
+      virtual ast::Expr* scan(ast::Seq* e, valmap &out);
+      virtual ast::Expr* scan(ast::While* e, valmap &out);
     };
   }
 }

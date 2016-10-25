@@ -20,6 +20,9 @@ namespace calcc {
       virtual ast::Expr* scan(ast::FDecl* e, std::ostream &out);
       virtual ast::Expr* scan(ast::If* e, std::ostream &out);
       virtual ast::Expr* scan(ast::BinaryOp* e, std::ostream &out);
+      virtual ast::Expr* scan(ast::Seq* e, std::ostream &out);
+      virtual ast::Expr* scan(ast::Set* e, std::ostream &out);
+      virtual ast::Expr* scan(ast::While* e, std::ostream &out);
     public:
       virtual ast::Expr* run(ast::Expr* e, std::ostream &out) {
         ast::Expr *ret = Scanner::run(e,out);

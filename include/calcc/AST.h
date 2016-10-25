@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 #include "llvm/ADT/APInt.h"
 #include "llvm/IR/Value.h"
 
@@ -86,6 +87,8 @@ namespace calcc {
       virtual EXPR_TYPE getExprType() {return EXPR_VDECL;}
       bool isConst() { return cnst; }
     };
+    //! A set of variables
+    typedef std::set<ast::VDecl*> vset;
     //! A function declaration
     class FDecl : public Decl {
     private:

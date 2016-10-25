@@ -11,11 +11,16 @@ using namespace calcc;
 using namespace std;
 using namespace llvm;
 
-Type *toType(VAL_TYPE vt) {
-  switch (vt) {
-    case VAL_INT: return Type::getInt64Ty(calcc::C);
-    case VAL_BOOL: return Type::getInt1Ty(calcc::C);
-    default: throw error::scanner("Unknown type error");
+namespace {
+  Type *toType(VAL_TYPE vt) {
+    switch (vt) {
+      case VAL_INT:
+        return Type::getInt64Ty(calcc::C);
+      case VAL_BOOL:
+        return Type::getInt1Ty(calcc::C);
+      default:
+        throw error::scanner("Unknown type error");
+    }
   }
 }
 
@@ -88,6 +93,7 @@ Expr* Compiler::scan(If *e, valmap &out) {
   Builder.CreateBr(aftB);
   elsB = Builder.GetInsertBlock();
   // After with PHI node
+  // TODO PHI Merge
   Builder.SetInsertPoint(aftB);
   PHINode* ret = Builder.CreatePHI(toType(e->getValType()),2);
   ret->addIncoming(thn->getValue(), thnB);
@@ -113,4 +119,41 @@ Expr* Compiler::scan(ValPtr *e, valmap &out) {
 Expr* Compiler::scan(VDecl *e, valmap &out) {
   throw error::scanner("Error: trying to compile a VDecl: " + e->getName());
   return e;
+}
+
+ast::Expr* Compiler::scan(ast::Seq *e, valmap &out) {
+  (ValPtr*)Scanner::run(e->getLHS(), out);
+  ValPtr* v = (ValPtr*)Scanner::run(e->getRHS(), out);
+  return v;
+}
+
+ast::Expr* Compiler::scan(ast::Set *e, valmap &out) {
+  ValPtr* v = (ValPtr*)Scanner::run(e->getExpr(), out);
+  VDecl* d = static_cast<VDecl*>(static_cast<Ref*>(e->getRef())->getDecl());
+  d->setVPtr(v);
+  return v;
+}
+
+ast::Expr* Compiler::scan(ast::While *e, valmap &out) {
+  Function *F = Builder.GetInsertBlock()->getParent();
+  BasicBlock* entB = Builder.GetInsertBlock();
+  // Cond block
+  BasicBlock* cndB = BasicBlock::Create(calcc::C, "CondW", F);
+  BasicBlock* bdyB = BasicBlock::Create(calcc::C, "BodyW", F);
+  BasicBlock* aftB = BasicBlock::Create(calcc::C, "AfterW", F);
+  // TODO PHIS in cond
+  // return value
+  PHINode* ret = Builder.CreatePHI(toType(e->getValType()),2);
+  ret->addIncoming(llvm::ConstantInt::get(calcc::C, APInt(64,0,/*isSigned=*/true)), entB);
+  ValPtr* cnd = (ValPtr*)Scanner::run(e->getCnd(), out);
+  Builder.CreateCondBr(cnd->getValue(),bdyB,aftB);
+
+  Builder.SetInsertPoint(bdyB);
+  ValPtr* bdy = (ValPtr*)Scanner::run(e->getBdy(), out);
+  Builder.CreateBr(cndB);
+  bdyB = Builder.GetInsertBlock();
+  ret->addIncoming(bdy->getValue(), bdyB);
+
+  Builder.SetInsertPoint(aftB);
+  return new ValPtr(ret);
 }
