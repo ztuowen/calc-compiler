@@ -11,13 +11,6 @@ using namespace calcc;
 using namespace std;
 using namespace llvm;
 
-static llvm::BasicBlock* BB;
-
-void setCurrentBlock(llvm::BasicBlock* b) {
-  BB = b;
-  calcc::Builder.SetInsertPoint(BB);
-}
-
 Type *toType(VAL_TYPE vt) {
   switch (vt) {
     case VAL_INT: return Type::getInt64Ty(calcc::C);
@@ -41,7 +34,7 @@ Expr* Compiler::scan(FDecl *e, valmap &out) {
   for (int i = 0; i<p.size(); ++i, ++it)
     p[i]->setVPtr(new ValPtr(&*it));
   // Function body
-  setCurrentBlock(BasicBlock::Create(calcc::C, "entry", F));
+  Builder.SetInsertPoint(BasicBlock::Create(calcc::C, "entry", F));
   ValPtr* ret = (ValPtr*)Scanner::run(e->getBody(), out);
   // Setup Return
   calcc::Builder.CreateRet(ret->getValue());
@@ -78,24 +71,24 @@ Expr* Compiler::scan(If *e, valmap &out) {
   // Calculate condition
   ValPtr* cnd = (ValPtr*)Scanner::run(e->getCnd(), out);
   // Setup blocks
-  Function *F = BB->getParent();
+  Function *F = Builder.GetInsertBlock()->getParent();
   BasicBlock* thnB = BasicBlock::Create(calcc::C, "thenIf", F);
   BasicBlock* elsB = BasicBlock::Create(calcc::C, "elseIf", F);
   BasicBlock* aftB = BasicBlock::Create(calcc::C, "afterIf", F);
   // Create conditional branch
   Builder.CreateCondBr(cnd->getValue(),thnB,elsB);
   // Then
-  setCurrentBlock(thnB);
+  Builder.SetInsertPoint(thnB);
   ValPtr* thn = (ValPtr*)Scanner::run(e->getThn(), out);
   Builder.CreateBr(aftB);
-  thnB = BB;
+  thnB = Builder.GetInsertBlock();
   // Else
-  setCurrentBlock(elsB);
+  Builder.SetInsertPoint(elsB);
   ValPtr* els = (ValPtr*)Scanner::run(e->getEls(), out);
   Builder.CreateBr(aftB);
-  elsB = BB;
+  elsB = Builder.GetInsertBlock();
   // After with PHI node
-  setCurrentBlock(aftB);
+  Builder.SetInsertPoint(aftB);
   PHINode* ret = Builder.CreatePHI(toType(e->getValType()),2);
   ret->addIncoming(thn->getValue(), thnB);
   ret->addIncoming(els->getValue(), elsB);

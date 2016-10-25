@@ -109,13 +109,13 @@ Expr* parseExpr(istream &sin, bool paren) {
   // Empty life
   if (token == "") throw error::parser("Expect expression, got EOF");
   // Parentheses
+  if (token == ")") throw error::parser("Expect expression, got \")\"");
   if (token == "(") {
     Expr* res;
     res = parseExpr(sin, true);
     expect(sin, ")");
     return res;
   }
-  if (token == ")") throw error::parser("Expect expression, got \")\"");
   // Int literal
   if ((token[0] == '-' && token.length()>0)|| isdigit(token[0])) {
     llvm::APInt val = parseInt(token);
@@ -123,13 +123,34 @@ Expr* parseExpr(istream &sin, bool paren) {
   }
   // Reserved word & identifier
   if (isalpha(token[0])) {
+    // If node
     if (token == "if") {
-      // If node
       if (!paren) throw error::parser("Missing parentheses over if statement: " + token);
       Expr *cnd = parseExpr(sin,false);
       Expr *thn = parseExpr(sin,false);
       Expr *els = parseExpr(sin,false);
       return new If(cnd,thn,els);
+    }
+    // Seq Node
+    if (token == "seq") {
+      if (!paren) throw error::parser("Missing parentheses over seq statement: " + token);
+      Expr* lhs = parseExpr(sin, false);
+      Expr* rhs = parseExpr(sin, false);
+      return new Seq(lhs,rhs);
+    }
+    // While Node
+    if (token == "while") {
+      if (!paren) throw error::parser("Missing parentheses over while statement: " + token);
+      Expr* cnd = parseExpr(sin, false);
+      Expr* body = parseExpr(sin, false);
+      return new While(cnd, body);
+    }
+    // Set Node
+    if (token == "set") {
+      if (!paren) throw error::parser("Missing parentheses over set statement: " + token);
+      Expr* e = parseExpr(sin, false);
+      Expr* ref = parseExpr(sin, false);
+      return new Set(e, ref);
     }
     // Bool literal
     if (token == "true") {
@@ -161,7 +182,7 @@ Expr* calcc::parser::parse(istream &sin) {
   expect(sin, "");
   std::vector<VDecl*> params;
   for (int i=0;i<6;++i)
-    params.push_back(new VDecl("a"+to_string(i),VAL_INT));
+    params.push_back(new VDecl("a"+to_string(i),VAL_INT, true));
   Expr* func = new FDecl("f",VAL_INT,params, res);
   return func;
 }

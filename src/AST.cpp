@@ -19,3 +19,21 @@ VAL_TYPE BinaryOp::getValType() {
   }
   return vt;
 }
+
+VAL_TYPE Set::getValType() {
+  if (vt == VAL_UNKNOWN)
+    vt = getExpr()->getValType();
+  return vt;
+}
+
+VAL_TYPE While::getValType() {
+  if (vt == VAL_UNKNOWN)
+    vt = getBdy()->getValType();
+  return vt;
+}
+
+VAL_TYPE Seq::getValType() {
+  if (vt == VAL_UNKNOWN)
+    vt = getRHS()->getValType();
+  return vt;
+}

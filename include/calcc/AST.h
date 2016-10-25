@@ -20,7 +20,10 @@ namespace calcc {
       EXPR_IF,
       EXPR_REF,
       EXPR_INT,
-      EXPR_VALP
+      EXPR_VALP,
+      EXPR_SET,
+      EXPR_WHILE,
+      EXPR_SEQ
     };
     //! Type of the expression's value
     enum VAL_TYPE {
@@ -76,9 +79,12 @@ namespace calcc {
     };
     //! A variable declaration
     class VDecl : public Decl {
+    private:
+      bool cnst;
     public:
-      VDecl(std::string iname, VAL_TYPE ivt) : Decl(iname,ivt) { }
+      VDecl(std::string iname, VAL_TYPE ivt, bool icnst) : Decl(iname,ivt), cnst(icnst) { }
       virtual EXPR_TYPE getExprType() {return EXPR_VDECL;}
+      bool isConst() { return cnst; }
     };
     //! A function declaration
     class FDecl : public Decl {
@@ -141,6 +147,39 @@ namespace calcc {
       virtual EXPR_TYPE getExprType() {return EXPR_INT;}
       virtual VAL_TYPE getValType() {return vt;}
       llvm::APInt getValue() {return value;}
+    };
+    class Set : public Expr {
+    private:
+      VAL_TYPE vt;
+      Expr *e, *ref;
+    public:
+      Set(Expr *ie, Expr *iref) : e(ie), ref(iref) { vt = VAL_UNKNOWN; }
+      virtual EXPR_TYPE getExprType() {return EXPR_SET;}
+      virtual VAL_TYPE getValType();
+      Expr* getExpr() { return e; }
+      Expr* getRef() { return ref; }
+    };
+    class While : public Expr {
+    private:
+      VAL_TYPE vt;
+      Expr *cnd, *bdy;
+    public:
+      While(Expr* icnd, Expr* ibdy) : cnd(icnd), bdy(ibdy) { vt = VAL_UNKNOWN; }
+      virtual EXPR_TYPE getExprType() {return EXPR_WHILE;}
+      virtual VAL_TYPE getValType();
+      Expr* getCnd() { return cnd; }
+      Expr* getBdy() { return bdy; }
+    };
+    class Seq : public Expr {
+    private:
+      VAL_TYPE vt;
+      Expr *lhs, *rhs;
+    public:
+      Seq(Expr* l, Expr* r) : lhs(l), rhs(r) { vt = VAL_UNKNOWN; }
+      virtual EXPR_TYPE getExprType() {return EXPR_SEQ;}
+      virtual VAL_TYPE getValType();
+      Expr* getLHS() { return lhs; }
+      Expr* getRHS() { return rhs; }
     };
   }
 }

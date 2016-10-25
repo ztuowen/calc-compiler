@@ -36,3 +36,20 @@ Expr* Checker::scan(If *e, int &out) {
     throw error::scanner("Then and Else part of If statements return different types");
   return e;
 }
+
+ast::Expr* Checker::scan(ast::Set *e, int &out) {
+  Scanner::scan(e, out);
+  if (e->getRef()->getExprType() != EXPR_REF)
+    throw error::scanner("Right hand side of Set is not an reference");
+  else {
+    ast::Ref* r = (ast::Ref*) e->getRef();
+    if (r->getDecl()->getExprType() != EXPR_VDECL)
+      throw error::scanner("Right hand side of Set is not an variable: " + r->getName());
+    else {
+      ast::VDecl* d = (ast::VDecl*) r->getDecl();
+      if (d->isConst())
+        throw error::scanner("Right hand side of Set is an immutable variable: " + d->getName());
+    }
+  }
+  return e;
+}
