@@ -2,10 +2,10 @@
 // Created by joe on 10/21/16.
 //
 
-#include "calcc/asttools/referrer.h"
-#include "calcc/error.h"
+#include "calcc/tools/referrer.h"
 
 using namespace calcc::ast;
+using namespace calcc::tools;
 using namespace calcc;
 using namespace std;
 

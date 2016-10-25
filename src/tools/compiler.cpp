@@ -2,10 +2,11 @@
 // Created by joe on 10/21/16.
 //
 
-#include "calcc/asttools/compiler.h"
+#include "calcc/tools/compiler.h"
 #include "calcc/global_llvm.h"
 
 using namespace calcc::ast;
+using namespace calcc::tools;
 using namespace calcc;
 using namespace std;
 using namespace llvm;
@@ -32,20 +33,19 @@ Expr* Compiler::scan(FDecl *e, valmap &out) {
   for (int i = 0; i<p.size(); ++i)
     params.push_back(toType(p[i]->getValType()));
   FunctionType *FT = FunctionType::get(toType(e->getValType()), params, false);
+  // Create function & binding
   Function *F = Function::Create(FT, Function::ExternalLinkage, "f", &*calcc::M);
-
-  setCurrentBlock(BasicBlock::Create(calcc::C, "entry", F));
-
+  e->setVPtr(new ValPtr(F));
+  // Setup function parameters
   auto it = F->arg_begin();
   for (int i = 0; i<p.size(); ++i, ++it)
     p[i]->setVPtr(new ValPtr(&*it));
-
+  // Function body
+  setCurrentBlock(BasicBlock::Create(calcc::C, "entry", F));
   ValPtr* ret = (ValPtr*)Scanner::run(e->getBody(), out);
-
   // Setup Return
   calcc::Builder.CreateRet(ret->getValue());
-
-  return e;
+  return e->getVPtr();
 }
 
 Expr* Compiler::scan(IntLiteral *e, valmap &out) {
@@ -75,20 +75,26 @@ Expr* Compiler::scan(BinaryOp *e, valmap &out) {
 }
 
 Expr* Compiler::scan(If *e, valmap &out) {
+  // Calculate condition
   ValPtr* cnd = (ValPtr*)Scanner::run(e->getCnd(), out);
+  // Setup blocks
   Function *F = BB->getParent();
   BasicBlock* thnB = BasicBlock::Create(calcc::C, "thenIf", F);
   BasicBlock* elsB = BasicBlock::Create(calcc::C, "elseIf", F);
   BasicBlock* aftB = BasicBlock::Create(calcc::C, "afterIf", F);
+  // Create conditional branch
   Builder.CreateCondBr(cnd->getValue(),thnB,elsB);
+  // Then
   setCurrentBlock(thnB);
   ValPtr* thn = (ValPtr*)Scanner::run(e->getThn(), out);
   Builder.CreateBr(aftB);
   thnB = BB;
+  // Else
   setCurrentBlock(elsB);
   ValPtr* els = (ValPtr*)Scanner::run(e->getEls(), out);
   Builder.CreateBr(aftB);
   elsB = BB;
+  // After with PHI node
   setCurrentBlock(aftB);
   PHINode* ret = Builder.CreatePHI(toType(e->getValType()),2);
   ret->addIncoming(thn->getValue(), thnB);
@@ -99,7 +105,7 @@ Expr* Compiler::scan(If *e, valmap &out) {
 Expr* Compiler::scan(Ref *e, valmap &out) {
   Decl* d = e->getDecl();
   if (d->getExprType() == EXPR_FDECL)
-    throw error::scanner("Can't refer to a FDecl yet");
+    throw error::scanner("Can't refer to a FDecl yet, Function name: " + e->getName());
   VDecl* vd = (VDecl*) d;
   return vd->getVPtr();
 }
@@ -109,6 +115,6 @@ Expr* Compiler::scan(ValPtr *e, valmap &out) {
 }
 
 Expr* Compiler::scan(VDecl *e, valmap &out) {
-  throw error::scanner("Error: trying to compile a VDecl");
+  throw error::scanner("Error: trying to compile a VDecl: " + e->getName());
   return e;
 }

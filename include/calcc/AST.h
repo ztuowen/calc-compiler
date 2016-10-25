@@ -12,6 +12,7 @@
 
 namespace calcc {
   namespace ast {
+    //! Expression(Node) type
     enum EXPR_TYPE {
       EXPR_FDECL,
       EXPR_VDECL,
@@ -21,11 +22,13 @@ namespace calcc {
       EXPR_INT,
       EXPR_VALP
     };
+    //! Type of the expression's value
     enum VAL_TYPE {
       VAL_UNKNOWN,
       VAL_INT,
       VAL_BOOL
     };
+    //! Binary operator's type
     enum BINOP_TYPE {
       BINOP_PLUS,
       BINOP_MINUS,
@@ -40,13 +43,16 @@ namespace calcc {
       BINOP_GT,
       BINOP_GE
     };
+    //! Generic expression node that returns a value
     class Expr {
     public:
       virtual EXPR_TYPE getExprType() = 0;
       virtual VAL_TYPE getValType() = 0;
     };
+    //! Pointer to an LLVM value
     class ValPtr : public Expr {
     private:
+      //! the llvm value, only known when compiling
       llvm::Value* val;
     public:
       ValPtr(llvm::Value* ival) : val(ival) { }
@@ -54,24 +60,27 @@ namespace calcc {
       virtual VAL_TYPE getValType() {return VAL_UNKNOWN;}
       llvm::Value* getValue() {return val;}
     };
+    //! A declaration
     class Decl : public Expr {
     private:
+      //! llvm value, binds when compiling
+      ValPtr *vptr;
       std::string name;
       VAL_TYPE vt;
     public:
       Decl(std::string iname, VAL_TYPE ivt) : name(iname), vt(ivt) { }
       virtual VAL_TYPE getValType() {return vt;}
       std::string getName() {return name;}
-    };
-    class VDecl : public Decl {
-    private:
-      ValPtr *vptr;
-    public:
-      VDecl(std::string iname, VAL_TYPE ivt) : Decl(iname,ivt) { }
-      virtual EXPR_TYPE getExprType() {return EXPR_VDECL;}
       void setVPtr(ValPtr* vp) { vptr = vp; }
       ValPtr* getVPtr() { return vptr; }
     };
+    //! A variable declaration
+    class VDecl : public Decl {
+    public:
+      VDecl(std::string iname, VAL_TYPE ivt) : Decl(iname,ivt) { }
+      virtual EXPR_TYPE getExprType() {return EXPR_VDECL;}
+    };
+    //! A function declaration
     class FDecl : public Decl {
     private:
       std::vector<VDecl*> params;
@@ -82,6 +91,7 @@ namespace calcc {
       Expr* getBody() { return body; }
       std::vector<VDecl*> getParams() {return params;}
     };
+    //! Binary operator expression
     class BinaryOp : public Expr {
     private:
       VAL_TYPE vt;
@@ -95,6 +105,7 @@ namespace calcc {
       Expr* getLHS() {return lhs;}
       Expr* getRHS() {return rhs;}
     };
+    //! If expression
     class If : public Expr {
     private:
       VAL_TYPE vt;
@@ -107,6 +118,7 @@ namespace calcc {
       Expr* getThn() {return thn;}
       Expr* getEls() {return els;}
     };
+    //! A declaration reference pointer
     class Ref : public Expr {
     private:
       std::string name;
@@ -119,6 +131,7 @@ namespace calcc {
       void setDecl(Decl *d) { decl = d; }
       Decl* getDecl() { return decl; }
     };
+    //! An integer/bool literal
     class IntLiteral : public Expr {
     private:
       llvm::APInt value;

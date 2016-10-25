@@ -17,10 +17,10 @@ add_executable(calcc
         calcc.cpp
         src/AST.cpp
         src/parser.cpp
-        src/asttools/referrer.cpp
-        src/asttools/checker.cpp
-        src/asttools/dumper.cpp
-        src/asttools/compiler.cpp
+        src/tools/referrer.cpp
+        src/tools/checker.cpp
+        src/tools/dumper.cpp
+        src/tools/compiler.cpp
         )
 
 llvm_map_components_to_libnames(llvm_libs support core irreader)

@@ -8,11 +8,11 @@
 #include "calcc/AST.h"
 #include "calcc/parser.h"
 #include "calcc/error.h"
-#include "calcc/asttools/referrer.h"
-#include "calcc/asttools/checker.h"
-#include "calcc/asttools/dumper.h"
+#include "calcc/tools/referrer.h"
+#include "calcc/tools/checker.h"
+#include "calcc/tools/dumper.h"
 #include "calcc/global_llvm.h"
-#include "calcc/asttools/compiler.h"
+#include "calcc/tools/compiler.h"
 
 using namespace llvm;
 using namespace std;
@@ -40,8 +40,8 @@ static int compile(char* fname) {
   }
   // Link identifier to definition
   try {
-    calcc::ast::declmap d;
-    calcc::ast::Referrer ref;
+    calcc::tools::declmap d;
+    calcc::tools::Referrer ref;
     ref.run(astp,d);
   } catch  (calcc::error::scanner &e) {
     cout << e.what() << endl;
@@ -49,7 +49,7 @@ static int compile(char* fname) {
   }
   // AST dump
   try {
-    calcc::ast::Dumper dump;
+    calcc::tools::Dumper dump;
     dump.run(astp, cout);
     cout.flush();
   } catch (calcc::error::scanner &e) {
@@ -59,7 +59,7 @@ static int compile(char* fname) {
   // Basic Type checking
   try {
     int d;
-    calcc::ast::Checker chk;
+    calcc::tools::Checker chk;
     chk.run(astp,d);
   } catch  (calcc::error::scanner &e) {
     cout << e.what() << endl;
@@ -68,8 +68,8 @@ static int compile(char* fname) {
   // From AST generate LLVM code
   calcc::M->setTargetTriple(llvm::sys::getProcessTriple());
   {
-    calcc::ast::valmap vmap;
-    calcc::ast::Compiler comp;
+    calcc::tools::valmap vmap;
+    calcc::tools::Compiler comp;
     comp.run(astp,vmap);
   }
   assert(!verifyModule(*calcc::M,&llvm::outs()));
