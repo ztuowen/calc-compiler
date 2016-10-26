@@ -155,6 +155,7 @@ namespace calcc {
       virtual VAL_TYPE getValType() {return vt;}
       llvm::APInt getValue() {return value;}
     };
+    //! Assignment
     class Set : public Expr {
     private:
       VAL_TYPE vt;
@@ -166,6 +167,7 @@ namespace calcc {
       Expr* getExpr() { return e; }
       Expr* getRef() { return ref; }
     };
+    //! While loop
     class While : public Expr {
     private:
       vset mod;
@@ -179,6 +181,7 @@ namespace calcc {
       Expr* getBdy() { return bdy; }
       vset& getMod() { return mod; }
     };
+    //! Statement sequence
     class Seq : public Expr {
     private:
       VAL_TYPE vt;
