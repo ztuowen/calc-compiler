@@ -72,7 +72,7 @@ namespace calcc {
       std::string name;
       VAL_TYPE vt;
     public:
-      Decl(std::string iname, VAL_TYPE ivt) : name(iname), vt(ivt) { }
+      Decl(std::string iname, VAL_TYPE ivt) : name(iname), vt(ivt), vptr(NULL) { }
       virtual VAL_TYPE getValType() {return vt;}
       std::string getName() {return name;}
       void setVPtr(ValPtr* vp) { vptr = vp; }
@@ -92,6 +92,7 @@ namespace calcc {
     //! A function declaration
     class FDecl : public Decl {
     private:
+      vset mod;
       std::vector<VDecl*> params;
       Expr* body;
     public:
@@ -99,6 +100,7 @@ namespace calcc {
       virtual EXPR_TYPE getExprType() {return EXPR_FDECL;}
       Expr* getBody() { return body; }
       std::vector<VDecl*> getParams() {return params;}
+      vset& getMod() { return mod; }
     };
     //! Binary operator expression
     class BinaryOp : public Expr {
@@ -117,6 +119,7 @@ namespace calcc {
     //! If expression
     class If : public Expr {
     private:
+      vset mod;
       VAL_TYPE vt;
       Expr *cnd, *thn, *els;
     public:
@@ -126,6 +129,7 @@ namespace calcc {
       Expr* getCnd() {return cnd;}
       Expr* getThn() {return thn;}
       Expr* getEls() {return els;}
+      vset& getMod() { return mod; }
     };
     //! A declaration reference pointer
     class Ref : public Expr {
@@ -164,6 +168,7 @@ namespace calcc {
     };
     class While : public Expr {
     private:
+      vset mod;
       VAL_TYPE vt;
       Expr *cnd, *bdy;
     public:
@@ -172,6 +177,7 @@ namespace calcc {
       virtual VAL_TYPE getValType();
       Expr* getCnd() { return cnd; }
       Expr* getBdy() { return bdy; }
+      vset& getMod() { return mod; }
     };
     class Seq : public Expr {
     private:

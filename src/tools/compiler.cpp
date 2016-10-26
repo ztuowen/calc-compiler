@@ -2,6 +2,7 @@
 // Created by joe on 10/21/16.
 //
 
+#include <llvm/Support/raw_ostream.h>
 #include "calcc/tools/compiler.h"
 #include "calcc/global_llvm.h"
 
@@ -38,6 +39,10 @@ Expr* Compiler::scan(FDecl *e, valmap &out) {
   auto it = F->arg_begin();
   for (int i = 0; i<p.size(); ++i, ++it)
     p[i]->setVPtr(new ValPtr(&*it));
+  // Hacky trick so that uninitialized variable has initial value of 0
+  Value* zero = llvm::ConstantInt::get(Type::getInt64Ty(C),0);
+  for (auto it = e->getMod().begin(); it!=e->getMod().end(); ++it)
+    (*it)->setVPtr(new ValPtr(zero));
   // Function body
   Builder.SetInsertPoint(BasicBlock::Create(calcc::C, "entry", F));
   ValPtr* ret = (ValPtr*)Scanner::run(e->getBody(), out);
@@ -82,22 +87,38 @@ Expr* Compiler::scan(If *e, valmap &out) {
   BasicBlock* aftB = BasicBlock::Create(calcc::C, "afterIf", F);
   // Create conditional branch
   Builder.CreateCondBr(cnd->getValue(),thnB,elsB);
+  // Create PHIs
+  Builder.SetInsertPoint(aftB);
+  std::map<VDecl*, PHINode*> phimap;
+  std::map<VDecl*, ValPtr*> orig;
+  for (auto it = e->getMod().begin(); it != e->getMod().end(); ++it) {
+    PHINode* phi = Builder.CreatePHI(toType((*it)->getValType()), 2);
+    phimap[*it] = phi;
+    orig[*it] = (*it)->getVPtr();
+  }
+  PHINode* ret = Builder.CreatePHI(toType(e->getValType()),2);
   // Then
   Builder.SetInsertPoint(thnB);
   ValPtr* thn = (ValPtr*)Scanner::run(e->getThn(), out);
   Builder.CreateBr(aftB);
   thnB = Builder.GetInsertBlock();
+  for (auto it = e->getMod().begin(); it != e->getMod().end(); ++it) {
+    phimap[*it]->addIncoming((*it)->getVPtr()->getValue(),thnB);
+    (*it)->setVPtr(orig[*it]);
+  }
+  ret->addIncoming(thn->getValue(), thnB);
   // Else
   Builder.SetInsertPoint(elsB);
   ValPtr* els = (ValPtr*)Scanner::run(e->getEls(), out);
   Builder.CreateBr(aftB);
   elsB = Builder.GetInsertBlock();
-  // After with PHI node
-  // TODO PHI Merge
-  Builder.SetInsertPoint(aftB);
-  PHINode* ret = Builder.CreatePHI(toType(e->getValType()),2);
-  ret->addIncoming(thn->getValue(), thnB);
+  for (auto it = e->getMod().begin(); it != e->getMod().end(); ++it) {
+    phimap[*it]->addIncoming((*it)->getVPtr()->getValue(),elsB);
+    (*it)->setVPtr(new ValPtr(phimap[*it]));
+  }
   ret->addIncoming(els->getValue(), elsB);
+  // Set insert point to after
+  Builder.SetInsertPoint(aftB);
   return new ValPtr(ret);
 }
 
@@ -106,9 +127,7 @@ Expr* Compiler::scan(Ref *e, valmap &out) {
   if (d->getExprType() == EXPR_FDECL)
     throw error::scanner("Can't refer to a FDecl yet, Function name: " + e->getName());
   VDecl* vd = (VDecl*) d;
-  // Hacky trick so that it has initial value of 0
-  if (!vd->getVPtr())
-    vd->setVPtr(new ValPtr(llvm::ConstantInt::get(C, llvm::APInt(64,0,/*isSigned=*/true))));
+  if (!vd->getVPtr()) return new ValPtr(llvm::ConstantInt::get(C,llvm::APInt(64,0,/*isSigned=*/true)));
   return vd->getVPtr();
 }
 
@@ -122,7 +141,7 @@ Expr* Compiler::scan(VDecl *e, valmap &out) {
 }
 
 ast::Expr* Compiler::scan(ast::Seq *e, valmap &out) {
-  (ValPtr*)Scanner::run(e->getLHS(), out);
+  Scanner::run(e->getLHS(), out);
   ValPtr* v = (ValPtr*)Scanner::run(e->getRHS(), out);
   return v;
 }
@@ -137,23 +156,43 @@ ast::Expr* Compiler::scan(ast::Set *e, valmap &out) {
 ast::Expr* Compiler::scan(ast::While *e, valmap &out) {
   Function *F = Builder.GetInsertBlock()->getParent();
   BasicBlock* entB = Builder.GetInsertBlock();
-  // Cond block
   BasicBlock* cndB = BasicBlock::Create(calcc::C, "CondW", F);
   BasicBlock* bdyB = BasicBlock::Create(calcc::C, "BodyW", F);
   BasicBlock* aftB = BasicBlock::Create(calcc::C, "AfterW", F);
-  // TODO PHIS in cond
+  Builder.CreateBr(cndB);
+  // Cond block
+  Builder.SetInsertPoint(cndB);
+  // PHIs from entry
+  std::map<VDecl*, PHINode*> phimap;
+  for (auto it = e->getMod().begin(); it != e->getMod().end(); ++it) {
+    PHINode* phi = Builder.CreatePHI(toType((*it)->getValType()), 2);
+    phi->addIncoming((*it)->getVPtr()->getValue(),entB);
+    (*it)->setVPtr(new ValPtr(phi));
+    phimap[*it] = phi;
+  }
   // return value
   PHINode* ret = Builder.CreatePHI(toType(e->getValType()),2);
   ret->addIncoming(llvm::ConstantInt::get(calcc::C, APInt(64,0,/*isSigned=*/true)), entB);
+  // Condition
   ValPtr* cnd = (ValPtr*)Scanner::run(e->getCnd(), out);
+  std::map<VDecl*, ValPtr*> orig;
   Builder.CreateCondBr(cnd->getValue(),bdyB,aftB);
-
+  for (auto it = e->getMod().begin(); it != e->getMod().end(); ++it) {
+    orig[*it] = (*it)->getVPtr();
+  }
+  // Body
   Builder.SetInsertPoint(bdyB);
   ValPtr* bdy = (ValPtr*)Scanner::run(e->getBdy(), out);
   Builder.CreateBr(cndB);
   bdyB = Builder.GetInsertBlock();
+  // PHIs from body
+  for (auto it = e->getMod().begin(); it != e->getMod().end(); ++it) {
+    phimap[*it]->addIncoming((*it)->getVPtr()->getValue(), bdyB);
+    (*it)->setVPtr(orig[*it]);
+  }
+  // return value
   ret->addIncoming(bdy->getValue(), bdyB);
-
+  // Set insert point to after
   Builder.SetInsertPoint(aftB);
   return new ValPtr(ret);
 }

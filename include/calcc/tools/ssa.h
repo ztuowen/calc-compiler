@@ -12,6 +12,7 @@ namespace calcc {
     //! Crude SSA resolution
     class SSAfier : public Scanner< ast::vset > {
     protected:
+      virtual ast::Expr* scan(ast::FDecl* e, ast::vset &out);
       virtual ast::Expr* scan(ast::If* e, ast::vset &out);
       virtual ast::Expr* scan(ast::While* e, ast::vset &out);
       virtual ast::Expr* scan(ast::Set* e, ast::vset &out);

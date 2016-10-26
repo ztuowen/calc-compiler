@@ -11,6 +11,7 @@
 #include "calcc/tools/referrer.h"
 #include "calcc/tools/checker.h"
 #include "calcc/tools/dumper.h"
+#include "calcc/tools/ssa.h"
 #include "calcc/global_llvm.h"
 #include "calcc/tools/compiler.h"
 
@@ -61,6 +62,15 @@ static int compile(char* fname) {
     int d;
     calcc::tools::Checker chk;
     chk.run(astp,d);
+  } catch  (calcc::error::scanner &e) {
+    cout << e.what() << endl;
+    return 1;
+  }
+  // SSA
+  try {
+    calcc::ast::vset v;
+    calcc::tools::SSAfier ssa;
+    ssa.run(astp,v);
   } catch  (calcc::error::scanner &e) {
     cout << e.what() << endl;
     return 1;
