@@ -119,7 +119,7 @@ namespace {
       return res;
     }
     // Int literal
-    if ((token[0] == '-' && token.length() > 0) || isdigit(token[0])) {
+    if ((token[0] == '-' && token.length() > 1) || isdigit(token[0])) {
       if (paren) throw error::parser("Extra parenthesis over token: " + token);
       llvm::APInt val = parseInt(token);
       return new IntLiteral(val, VAL_INT);
