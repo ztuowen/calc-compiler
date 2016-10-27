@@ -11,12 +11,16 @@
 
 namespace calcc {
   namespace tools {
-    typedef std::map<std::string, ast::Decl*> declmap;
+    typedef std::map<std::string, ast::Decl *> declmap;
+
     //! Link reference to corresponding declaration
-    class Referrer : public Scanner< declmap > {
+    class Referrer : public Scanner<declmap> {
     protected:
-      virtual ast::Expr* scan(ast::Ref* e, declmap &out);
-      virtual ast::Expr* scan(ast::FDecl* e, declmap &out);
+      virtual ast::Expr *scan(ast::Ref *e, declmap &out);
+
+      virtual ast::Expr *scan(ast::FDecl *e, declmap &out);
+
+      virtual ast::Expr *scan(ast::VScope *e, declmap &out);
     };
   }
 }

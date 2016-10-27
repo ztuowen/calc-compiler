@@ -11,7 +11,7 @@
 namespace calcc {
   namespace parser {
     //! Parse the file from istream:sin
-    ast::Expr* parse(std::istream &sin);
+    ast::Expr *parse(std::istream &sin);
   }
 }
 

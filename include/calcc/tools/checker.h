@@ -11,12 +11,15 @@
 namespace calcc {
   namespace tools {
     //! Basic type checking
-    class Checker : public Scanner< int > {
+    class Checker : public Scanner<int> {
     protected:
-      virtual ast::Expr* scan(ast::FDecl* e, int &out);
-      virtual ast::Expr* scan(ast::If* e, int &out);
-      virtual ast::Expr* scan(ast::BinaryOp* e, int &out);
-      virtual ast::Expr* scan(ast::Set* e, int &out);
+      virtual ast::Expr *scan(ast::FDecl *e, int &out);
+
+      virtual ast::Expr *scan(ast::If *e, int &out);
+
+      virtual ast::Expr *scan(ast::BinaryOp *e, int &out);
+
+      virtual ast::Expr *scan(ast::Set *e, int &out);
     };
   }
 }

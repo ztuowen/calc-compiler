@@ -184,13 +184,17 @@ namespace {
 
 // Parse the main file
 Expr* calcc::parser::parse(istream &sin) {
-  Expr* res = NULL;
+  Expr *bdy = NULL;
   lc = '\n';
-  res = parseExpr(sin, false);
+  bdy = parseExpr(sin, false);
   expect(sin, "");
-  std::vector<VDecl*> params;
-  for (int i=0;i<6;++i)
-    params.push_back(new VDecl("a"+to_string(i),VAL_INT, true));
-  Expr* func = new FDecl("f",VAL_INT,params, res);
+  std::vector<VDecl *> params;
+  for (int i = 0; i < 6; ++i)
+    params.push_back(new VDecl("a" + to_string(i), VAL_INT, true));
+  for (int i = 0; i < 6; ++i) {
+    VDecl* m = new VDecl("m" + to_string(i), VAL_INT, false);
+    bdy = new VScope(m, bdy);
+  }
+  Expr* func = new FDecl("f",VAL_INT,params, bdy);
   return func;
 }

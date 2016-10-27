@@ -9,41 +9,54 @@ using namespace calcc::tools;
 using namespace calcc;
 using namespace std;
 
-Expr* Referrer::scan(FDecl *e, declmap &out) {
-  vector<VDecl*> p = e->getParams();
-  vector<Decl*> oldp;
+Expr *Referrer::scan(FDecl *e, declmap &out) {
+  vector<VDecl *> p = e->getParams();
+  vector<Decl *> oldp;
   out[e->getName()] = e;
-  for (int i=0;i<p.size();++i) {
+  for (int i = 0; i < p.size(); ++i) {
     auto it = out.find(p[i]->getName());
-    if (it!=out.end()) {
+    if (it != out.end()) {
       oldp.push_back(it->second);
       out.erase(it);
     }
     out[p[i]->getName()] = p[i];
   }
   // This is only needed because we don't want it to refer to other things
-  for (int i=0;i<10;++i) {
-    string name = "m"+to_string(i);
-    VDecl* m = new VDecl(name, VAL_INT, false);
+  for (int i = 0; i < 10; ++i) {
+    string name = "m" + to_string(i);
+    VDecl *m = new VDecl(name, VAL_INT, false);
     out[name] = m;
   }
-  Expr *ret = Scanner<declmap>::scan(e,out);
+  Expr *ret = Scanner<declmap>::scan(e, out);
   // Need explicit clean up
-  for (int i=0;i<p.size();++i)
+  for (int i = 0; i < p.size(); ++i)
     out.erase(p[i]->getName());
-  for (int i=0;i<10;++i) {
+  for (int i = 0; i < 10; ++i) {
     string name = "m" + to_string(i);
     out.erase(name);
   }
-  for (int i=0;i<oldp.size();++i)
+  for (int i = 0; i < oldp.size(); ++i)
     out[oldp[i]->getName()] = oldp[i];
   return ret;
 }
 
-Expr* Referrer::scan(Ref *e, declmap &out) {
+Expr *Referrer::scan(Ref *e, declmap &out) {
   auto it = out.find(e->getName());
   if (it == out.end())
-    throw error::scanner("Unknown identifier: "+e->getName());
+    throw error::scanner("Unknown identifier: " + e->getName());
   e->setDecl(it->second);
+  return e;
+}
+
+ast::Expr *Referrer::scan(ast::VScope *e, declmap &out) {
+  Decl *oldd = NULL;
+  if (out.find(e->getDecl()->getName()) != out.end()) {
+    oldd = out[e->getDecl()->getName()];
+  }
+  out[e->getDecl()->getName()] = e->getDecl();
+  run(e->getExpr(), out);
+  out.erase(e->getDecl()->getName());
+  if (oldd)
+    out[e->getDecl()->getName()] = oldd;
   return e;
 }

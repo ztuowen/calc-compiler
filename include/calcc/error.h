@@ -11,6 +11,7 @@ namespace calcc {
     struct parser : public std::runtime_error {
       parser(const std::string &msg) : std::runtime_error(msg) {}
     };
+
     //! Generic scanner error
     struct scanner : public std::runtime_error {
       scanner(const std::string &msg) : std::runtime_error(msg) {}
