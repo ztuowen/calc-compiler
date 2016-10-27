@@ -20,6 +20,10 @@ namespace calcc {
       virtual ast::Expr *scan(ast::BinaryOp *e, int &out);
 
       virtual ast::Expr *scan(ast::Set *e, int &out);
+
+      virtual ast::Expr *scan(ast::While *e, int &out);
+
+      virtual ast::Expr *scan(ast::Seq *e, int &out);
     };
   }
 }
