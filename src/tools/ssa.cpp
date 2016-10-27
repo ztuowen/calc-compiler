@@ -9,11 +9,6 @@ using namespace calcc::tools;
 using namespace calcc;
 using namespace std;
 
-ast::Expr *SSAfier::scan(ast::FDecl *e, ast::vset &out) {
-  run(e->getBody(), e->getMod());
-  return e;
-}
-
 ast::Expr *SSAfier::scan(ast::If *e, ast::vset &out) {
   run(e->getCnd(), out);
   vset thn;
@@ -33,10 +28,16 @@ ast::Expr *SSAfier::scan(ast::Set *e, ast::vset &out) {
 }
 
 ast::Expr *SSAfier::scan(ast::While *e, ast::vset &out) {
-  run(e->getCnd(), out);
   vset bdy;
+  run(e->getCnd(), bdy);
   run(e->getBdy(), bdy);
   e->getMod().insert(bdy.begin(), bdy.end());
   out.insert(bdy.begin(), bdy.end());
+  return e;
+}
+
+ast::Expr *SSAfier::scan(ast::VScope *e, ast::vset &out) {
+  run(e->getExpr(), out);
+  out.erase(e->getDecl());
   return e;
 }

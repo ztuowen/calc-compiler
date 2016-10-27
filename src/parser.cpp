@@ -191,7 +191,7 @@ Expr* calcc::parser::parse(istream &sin) {
   std::vector<VDecl *> params;
   for (int i = 0; i < 6; ++i)
     params.push_back(new VDecl("a" + to_string(i), VAL_INT, true));
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < 10; ++i) {
     VDecl* m = new VDecl("m" + to_string(i), VAL_INT, false);
     bdy = new VScope(m, bdy);
   }
