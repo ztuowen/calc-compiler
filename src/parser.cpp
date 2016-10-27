@@ -113,6 +113,7 @@ namespace {
     // Parentheses
     if (token == ")") throw error::parser("Expect expression, got \")\"");
     if (token == "(") {
+      if (paren) throw error::parser("Extra parenthesis over parenthesis");
       Expr *res;
       res = parseExpr(sin, true);
       expect(sin, ")");
