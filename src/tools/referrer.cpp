@@ -13,30 +13,21 @@ Expr *Referrer::scan(FDecl *e, declmap &out) {
   vector<VDecl *> p = e->getParams();
   vector<Decl *> oldp;
   out[e->getName()] = e;
-  for (int i = 0; i < p.size(); ++i) {
-    auto it = out.find(p[i]->getName());
+  for (auto par = p.begin(); par != p.end(); ++par) {
+    auto it = out.find((*par)->getName());
     if (it != out.end()) {
       oldp.push_back(it->second);
       out.erase(it);
     }
-    out[p[i]->getName()] = p[i];
+    out[(*par)->getName()] = *par;
   }
   // This is only needed because we don't want it to refer to other things
-  for (int i = 0; i < 10; ++i) {
-    string name = "m" + to_string(i);
-    VDecl *m = new VDecl(name, VAL_INT, false);
-    out[name] = m;
-  }
   Expr *ret = Scanner<declmap>::scan(e, out);
   // Need explicit clean up
-  for (int i = 0; i < p.size(); ++i)
-    out.erase(p[i]->getName());
-  for (int i = 0; i < 10; ++i) {
-    string name = "m" + to_string(i);
-    out.erase(name);
-  }
-  for (int i = 0; i < oldp.size(); ++i)
-    out[oldp[i]->getName()] = oldp[i];
+  for (auto par = p.begin(); par != p.end(); ++par)
+    out.erase((*par)->getName());
+  for (auto i = oldp.begin(); i != oldp.end(); ++i)
+    out[(*i)->getName()] = *i;
   return ret;
 }
 

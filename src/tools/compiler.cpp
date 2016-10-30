@@ -29,16 +29,16 @@ Expr *Compiler::scan(FDecl *e, valmap &out) {
   // Setup Parameters
   std::vector<Type *> params;
   vector<VDecl *> p = e->getParams();
-  for (int i = 0; i < p.size(); ++i)
-    params.push_back(toType(p[i]->getValType()));
+  for (auto par = p.begin(); par != p.end(); ++par)
+    params.push_back(toType((*par)->getValType()));
   FunctionType *FT = FunctionType::get(toType(e->getValType()), params, false);
   // Create function & binding
   Function *F = Function::Create(FT, Function::ExternalLinkage, "f", &*calcc::M);
   e->setVPtr(new ValPtr(F));
   // Setup function parameters
   auto it = F->arg_begin();
-  for (int i = 0; i < p.size(); ++i, ++it)
-    p[i]->setVPtr(new ValPtr(&*it));
+  for (auto par = p.begin(); par != p.end(); ++par, ++it)
+    (*par)->setVPtr(new ValPtr(&*it));
   // Hacky trick so that uninitialized variable has initial value of 0
   Value *zero = llvm::ConstantInt::get(Type::getInt64Ty(C), 0);
   for (auto it = e->getMod().begin(); it != e->getMod().end(); ++it)

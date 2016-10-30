@@ -25,8 +25,8 @@ Expr *Dumper::scan(BinaryOp *e, std::ostream &out) {
 Expr *Dumper::scan(FDecl *e, std::ostream &out) {
   out << "(FDecl " << e->getName() << ": " << e->getValType() << " (";
   vector<VDecl *> p = e->getParams();
-  for (int i = 0; i < p.size(); ++i) {
-    run(p[i], out);
+  for (auto par = p.begin(); par != p.end(); ++par) {
+    run(*par, out);
     out << " ";
   }
   out << ") ";

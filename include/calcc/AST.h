@@ -76,11 +76,11 @@ namespace calcc {
     class Decl : public Expr {
     private:
       //! llvm value, binds when compiling
-      ValPtr *vptr;
+      ValPtr *vptr = NULL;
       std::string name;
-      VAL_TYPE vt;
+      VAL_TYPE vt = VAL_UNKNOWN;
     public:
-      Decl(std::string iname, VAL_TYPE ivt) : name(iname), vt(ivt), vptr(NULL) {}
+      Decl(std::string iname, VAL_TYPE ivt) : name(iname), vt(ivt) {}
 
       virtual VAL_TYPE getValType() { return vt; }
 
