@@ -58,8 +58,8 @@ namespace {
     // Return NULL if at EOF
     if (!sin.good()) return res;
     // Check if is braces
-    nextChar(sin, c);
     pos = (int)sin.tellg();
+    nextChar(sin, c);
     res += c;
     if (c == '(' || c == ')') {
       sin.get(c);
