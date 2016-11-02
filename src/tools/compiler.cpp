@@ -24,16 +24,21 @@ namespace {
         throw error::scanner("Unknown type error");
     }
   }
+  Value *makeTailCall(Value* callee, vector<Value*> args) {
+    CallInst * CI = CallInst::Create(callee,args);
+    CI->setTailCall();
+    return Builder.Insert(CI);
+  }
   void makeTrap(int pos) {
     auto p = ConstantInt::get(toType(VAL_INT),(uint64_t)pos,true);
-    Builder.CreateCall(trap, vector<Value*>(1,p));
+    makeTailCall(trap, vector<Value*>(1,p));
     Builder.CreateUnreachable();
   }
   ValPtr* makeWrappedChecks(Function *f, ValPtr* lhs, ValPtr* rhs, int pos) {
     vector<Value*> parms;
     parms.push_back(lhs->getValue());
     parms.push_back(rhs->getValue());
-    Value* ret = Builder.CreateCall(f, parms);
+    Value* ret = makeTailCall(f, parms);
     Value* res = Builder.CreateExtractValue(ret, vector<unsigned int>(1,0));
     Value* cnd = Builder.CreateExtractValue(ret, vector<unsigned int>(1,1));
     Function *F = Builder.GetInsertBlock()->getParent();
