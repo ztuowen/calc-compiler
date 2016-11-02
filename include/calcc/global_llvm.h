@@ -14,6 +14,7 @@ namespace calcc {
   extern llvm::LLVMContext C;
   extern llvm::IRBuilder<llvm::NoFolder> Builder;
   extern std::unique_ptr<llvm::Module> M;
+  extern bool checks;
 }
 
 #endif //CALCCOMPILER_GLOBAL_LLVM_H

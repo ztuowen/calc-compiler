@@ -37,6 +37,8 @@ namespace calcc {
       virtual ast::Expr *scan(ast::While *e, valmap &out);
 
       virtual ast::Expr *scan(ast::VScope *e, valmap &out);
+    public:
+      virtual void run_init(ast::Expr *e);
     };
   }
 }

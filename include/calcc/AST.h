@@ -51,10 +51,16 @@ namespace calcc {
 
     //! Generic expression node that returns a value
     class Expr {
+    private:
+      int pos = -1;
     public:
       virtual EXPR_TYPE getExprType() = 0;
 
       virtual VAL_TYPE getValType() = 0;
+
+      Expr* setPos(int p) { pos = p; return this; }
+
+      int getPos() { return pos; }
     };
 
     //! Pointer to an LLVM value

@@ -13,6 +13,7 @@ using namespace std;
 using namespace llvm;
 
 namespace {
+  Function *sadd, *ssub, *smul, *trap;
   Type *toType(VAL_TYPE vt) {
     switch (vt) {
       case VAL_INT:
@@ -22,6 +23,55 @@ namespace {
       default:
         throw error::scanner("Unknown type error");
     }
+  }
+  void makeTrap(int pos) {
+    auto p = ConstantInt::get(toType(VAL_INT),(uint64_t)pos,true);
+    Builder.CreateCall(trap, vector<Value*>(1,p));
+    Builder.CreateUnreachable();
+  }
+  ValPtr* makeWrappedChecks(Function *f, ValPtr* lhs, ValPtr* rhs, int pos) {
+    vector<Value*> parms;
+    parms.push_back(lhs->getValue());
+    parms.push_back(rhs->getValue());
+    Value* ret = Builder.CreateCall(f, parms);
+    Value* res = Builder.CreateExtractValue(ret, vector<unsigned int>(1,0));
+    Value* cnd = Builder.CreateExtractValue(ret, vector<unsigned int>(1,1));
+    Function *F = Builder.GetInsertBlock()->getParent();
+    BasicBlock *over = BasicBlock::Create(calcc::C, "over", F);
+    BasicBlock *safe = BasicBlock::Create(calcc::C, "safe", F);
+    Builder.CreateCondBr(cnd, over, safe);
+    Builder.SetInsertPoint(over);
+    makeTrap(pos);
+    Builder.SetInsertPoint(safe);
+    return new ValPtr(res);
+  }
+  ValPtr* makeDivChecks(ValPtr *lhs, ValPtr *rhs, int pos) {
+    Value* zero = ConstantInt::get(toType(VAL_INT), 0);
+    Value* none = ConstantInt::get(C, APInt(64,(uint64_t)-1,true));
+    Value* nmax = ConstantInt::get(C, APInt::getSignedMinValue(64));
+    Value* cnd1 = Builder.CreateICmpEQ(rhs->getValue(),zero);
+    Value* cnd2 = Builder.CreateAnd(Builder.CreateICmpEQ(lhs->getValue(),nmax),Builder.CreateICmpEQ(rhs->getValue(),none));
+    Value* cnd = Builder.CreateOr(cnd1,cnd2);
+    Function *F = Builder.GetInsertBlock()->getParent();
+    BasicBlock *over = BasicBlock::Create(calcc::C, "over", F);
+    BasicBlock *safe = BasicBlock::Create(calcc::C, "safe", F);
+    Builder.CreateCondBr(cnd, over, safe);
+    Builder.SetInsertPoint(over);
+    makeTrap(pos);
+    Builder.SetInsertPoint(safe);
+    return new ValPtr(Builder.CreateSDiv(lhs->getValue(),rhs->getValue()));
+  }
+  ValPtr* makeModChecks(ValPtr *lhs, ValPtr *rhs, int pos) {
+    Value* zero = ConstantInt::get(toType(VAL_INT), 0);
+    Value* cnd = Builder.CreateICmpEQ(rhs->getValue(), zero);
+    Function *F = Builder.GetInsertBlock()->getParent();
+    BasicBlock *over = BasicBlock::Create(calcc::C, "over", F);
+    BasicBlock *safe = BasicBlock::Create(calcc::C, "safe", F);
+    Builder.CreateCondBr(cnd, over, safe);
+    Builder.SetInsertPoint(over);
+    makeTrap(pos);
+    Builder.SetInsertPoint(safe);
+    return new ValPtr(Builder.CreateSRem(lhs->getValue(),rhs->getValue()));
   }
 }
 
@@ -60,14 +110,19 @@ Expr *Compiler::scan(BinaryOp *e, valmap &out) {
   ValPtr *rhs = (ValPtr *) Scanner::run(e->getRHS(), out);
   switch (e->getOP()) {
     case BINOP_PLUS:
+      if (checks) return makeWrappedChecks(sadd, lhs, rhs, e->getPos());
       return new ValPtr(Builder.CreateAdd(lhs->getValue(), rhs->getValue()));
     case BINOP_MINUS:
+      if (checks) return makeWrappedChecks(ssub, lhs, rhs, e->getPos());
       return new ValPtr(Builder.CreateSub(lhs->getValue(), rhs->getValue()));
     case BINOP_MULT:
+      if (checks) return makeWrappedChecks(smul, lhs, rhs, e->getPos());
       return new ValPtr(Builder.CreateMul(lhs->getValue(), rhs->getValue()));
     case BINOP_DIV:
+      if (checks) return makeDivChecks(lhs,rhs,e->getPos());
       return new ValPtr(Builder.CreateSDiv(lhs->getValue(), rhs->getValue()));
     case BINOP_MOD:
+      if (checks) return makeModChecks(lhs,rhs,e->getPos());
       return new ValPtr(Builder.CreateSRem(lhs->getValue(), rhs->getValue()));
 
     case BINOP_EQ:
@@ -211,4 +266,24 @@ ast::Expr *Compiler::scan(ast::VScope *e, valmap &out) {
   e->getDecl()->setVPtr(new ValPtr(llvm::ConstantInt::get(toType(e->getDecl()->getValType()), 0)));
   Expr *ret = run(e->getExpr(), out);
   return ret;
+}
+
+void Compiler::run_init(ast::Expr *e) {
+  calcc::tools::valmap vmap;
+  if (checks) {
+    std::vector<Type*> retFields;
+    retFields.push_back(toType(VAL_INT));
+    retFields.push_back(toType(VAL_BOOL));
+    auto retType = StructType::get(C,retFields);
+    std::vector<Type*> args;
+    args.push_back(toType(VAL_INT));
+    args.push_back(toType(VAL_INT));
+    FunctionType *ft = FunctionType::get(retType, args, false);
+    FunctionType *tt = FunctionType::get(Type::getVoidTy(C), vector<Type*>(1, toType(VAL_INT)), false);
+    sadd = Function::Create(ft, Function::ExternalLinkage, "llvm.sadd.with.overflow.i64", &*calcc::M);
+    ssub = Function::Create(ft, Function::ExternalLinkage, "llvm.ssub.with.overflow.i64", &*calcc::M);
+    smul = Function::Create(ft, Function::ExternalLinkage, "llvm.smul.with.overflow.i64", &*calcc::M);
+    trap = Function::Create(tt, Function::ExternalLinkage, "overflow_fail", &*calcc::M);
+  }
+  run(e, vmap);
 }

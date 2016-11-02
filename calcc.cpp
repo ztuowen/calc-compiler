@@ -22,19 +22,14 @@ namespace calcc {
   LLVMContext C;
   IRBuilder<NoFolder> Builder(C);
   std::unique_ptr<Module> M = llvm::make_unique<Module>("calc", C);
+  bool checks = false;
 }
 
-static int compile(char* fname) {
+static int compile() {
   calcc::ast::Expr *astp;
   // parse the source program
   try {
-    if (fname) {
-      ifstream fin;
-      fin.open(fname);
-      astp = calcc::parser::parse(fin);
-      fin.close();
-    } else 
-      astp = calcc::parser::parse(cin);
+    astp = calcc::parser::parse(cin);
   } catch (calcc::error::parser &e) {
     cout << e.what() << endl;
     return 1;
@@ -78,9 +73,8 @@ static int compile(char* fname) {
   // From AST generate LLVM code
   calcc::M->setTargetTriple(llvm::sys::getProcessTriple());
   {
-    calcc::tools::valmap vmap;
     calcc::tools::Compiler comp;
-    comp.run(astp,vmap);
+    comp.run_init(astp);
   }
   assert(!verifyModule(*calcc::M,&llvm::outs()));
   calcc::M->dump();
@@ -88,7 +82,11 @@ static int compile(char* fname) {
 }
 
 int main(int argc, char** argv) {
-  if (argc<2)
-    return compile(NULL);
-  return compile(argv[1]);
+  // Parse command line
+  if (argc > 1) {
+    if (!strcmp(argv[1],"-check")) calcc::checks = true;
+    else return 1;
+    if (argc > 2) return 1;
+  }
+  return compile();
 }
