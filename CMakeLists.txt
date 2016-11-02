@@ -29,7 +29,7 @@ llvm_map_components_to_libnames(llvm_libs support core irreader)
 target_link_libraries(calcc ${llvm_libs})
 
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/auto-tests
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/auto-tests-hw7 ${CMAKE_BINARY_DIR}/auto-tests
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/auto-tests-hw8 ${CMAKE_BINARY_DIR}/auto-tests
         )
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/driver.c
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/driver.c ${CMAKE_BINARY_DIR}
