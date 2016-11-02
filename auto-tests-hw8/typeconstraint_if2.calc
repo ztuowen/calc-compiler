@@ -1,0 +1,3 @@
+# ARGS
+# RESULT ERROR
+(if true (== a1 1) 0)

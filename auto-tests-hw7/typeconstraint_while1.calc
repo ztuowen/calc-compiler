@@ -1,0 +1,3 @@
+# ARGS
+# RESULT ERROR
+(while true (== 0 1))

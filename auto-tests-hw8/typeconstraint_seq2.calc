@@ -1,0 +1,3 @@
+# ARGS
+# RESULT ERROR
+(seq 0 (< a1 1))
