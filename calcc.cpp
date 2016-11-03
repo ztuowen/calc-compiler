@@ -72,9 +72,12 @@ static int compile() {
   }
   // From AST generate LLVM code
   calcc::M->setTargetTriple(llvm::sys::getProcessTriple());
-  {
+  try {
     calcc::tools::Compiler comp;
     comp.run_init(astp);
+  } catch (calcc::error::scanner &e) {
+    cout << e.what() << endl;
+    return 1;
   }
   assert(!verifyModule(*calcc::M,&llvm::outs()));
   calcc::M->dump();

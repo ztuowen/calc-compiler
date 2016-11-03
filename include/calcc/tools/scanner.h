@@ -64,7 +64,7 @@ namespace calcc {
       }
 
     public:
-      virtual ast::Expr *run(ast::Expr *e, T &out) {
+      virtual inline ast::Expr *run(ast::Expr *e, T &out) {
         if (!e) throw error::scanner("Null expression!");
         switch (e->getExprType()) {
           case ast::EXPR_INT:

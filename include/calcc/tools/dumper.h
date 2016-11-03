@@ -44,7 +44,7 @@ namespace calcc {
       virtual ast::Expr *scan(ast::VScope *e, std::ostream &out);
 
     public:
-      virtual ast::Expr *run(ast::Expr *e, std::ostream &out) {
+      virtual inline ast::Expr *run(ast::Expr *e, std::ostream &out) {
         ast::Expr *ret = Scanner::run(e, out);
         out.flush();
         return ret;

@@ -38,6 +38,8 @@ Expr *Checker::scan(If *e, int &out) {
 
 ast::Expr *Checker::scan(ast::Set *e, int &out) {
   Scanner::scan(e, out);
+  if (e->getExpr()->getValType() != e->getRef()->getValType())
+    throw error::scanner("Assigning value to a differently typed variable");
   if (e->getRef()->getExprType() != EXPR_REF)
     throw error::scanner("Right hand side of Set is not an reference");
   else {

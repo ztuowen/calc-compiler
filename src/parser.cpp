@@ -81,6 +81,14 @@ namespace {
 // Parse Token
   llvm::APInt parseInt(const string &str) {
     long long res;
+    bool neg = str[0] == '-';
+    bool zero = false;
+    size_t i = neg?1:0;
+    if (str[i] == '0') zero = true;
+    if (neg && zero) throw error::parser("Malformed int literal: " + str);
+    for (i=i+1;i<str.length();++i)
+        if (!isdigit(str[i]) || zero)
+            throw error::parser("Malformed int literal: " + str);
     try {
       res = stoll(str);
     } catch (exception &e) {
