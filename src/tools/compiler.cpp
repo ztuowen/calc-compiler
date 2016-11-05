@@ -14,7 +14,7 @@ using namespace llvm;
 
 namespace {
   Function *sadd, *ssub, *smul, *trap;
-  Type *toType(VAL_TYPE vt) {
+  inline Type *toType(VAL_TYPE vt) {
     switch (vt) {
       case VAL_INT:
         return Type::getInt64Ty(calcc::C);
@@ -24,23 +24,23 @@ namespace {
         throw error::scanner("Unknown type error");
     }
   }
-  Value *makeTailCall(Value* callee, vector<Value*> args) {
+  inline Value *makeTailCall(Value* callee, vector<Value*> args) {
     CallInst * CI = CallInst::Create(callee,args);
     CI->setTailCall();
     return Builder.Insert(CI);
   }
-  void makeTrap(int pos) {
+  inline void makeTrap(int pos) {
     auto p = ConstantInt::get(toType(VAL_INT),(uint64_t)pos,true);
     makeTailCall(trap, vector<Value*>(1,p));
     Builder.CreateUnreachable();
   }
-  ValPtr* makeWrappedChecks(Function *f, ValPtr* lhs, ValPtr* rhs, int pos) {
+  inline ValPtr* makeWrappedChecks(Function *f, ValPtr* lhs, ValPtr* rhs, int pos) {
     vector<Value*> parms;
     parms.push_back(lhs->getValue());
     parms.push_back(rhs->getValue());
     Value* ret = makeTailCall(f, parms);
-    Value* res = Builder.CreateExtractValue(ret, vector<unsigned int>(1,0));
-    Value* cnd = Builder.CreateExtractValue(ret, vector<unsigned int>(1,1));
+    Value* res = Builder.CreateExtractValue(ret, ArrayRef<unsigned>(0));
+    Value* cnd = Builder.CreateExtractValue(ret, ArrayRef<unsigned>(1));
     Function *F = Builder.GetInsertBlock()->getParent();
     BasicBlock *over = BasicBlock::Create(calcc::C, "over", F);
     BasicBlock *safe = BasicBlock::Create(calcc::C, "safe", F);
@@ -50,7 +50,7 @@ namespace {
     Builder.SetInsertPoint(safe);
     return new ValPtr(res);
   }
-  ValPtr* makeDivChecks(ValPtr *lhs, ValPtr *rhs, int pos) {
+  inline ValPtr* makeDivChecks(ValPtr *lhs, ValPtr *rhs, int pos) {
     Value* zero = ConstantInt::get(toType(VAL_INT), 0);
     Value* none = ConstantInt::get(C, APInt(64,(uint64_t)-1,true));
     Value* nmax = ConstantInt::get(C, APInt::getSignedMinValue(64));
@@ -66,7 +66,7 @@ namespace {
     Builder.SetInsertPoint(safe);
     return new ValPtr(Builder.CreateSDiv(lhs->getValue(),rhs->getValue()));
   }
-  ValPtr* makeModChecks(ValPtr *lhs, ValPtr *rhs, int pos) {
+  inline ValPtr* makeModChecks(ValPtr *lhs, ValPtr *rhs, int pos) {
     Value* zero = ConstantInt::get(toType(VAL_INT), 0);
     Value* cnd = Builder.CreateICmpEQ(rhs->getValue(), zero);
     Function *F = Builder.GetInsertBlock()->getParent();
@@ -276,18 +276,10 @@ ast::Expr *Compiler::scan(ast::VScope *e, valmap &out) {
 void Compiler::run_init(ast::Expr *e) {
   calcc::tools::valmap vmap;
   if (checks) {
-    std::vector<Type*> retFields;
-    retFields.push_back(toType(VAL_INT));
-    retFields.push_back(toType(VAL_BOOL));
-    auto retType = StructType::get(C,retFields);
-    std::vector<Type*> args;
-    args.push_back(toType(VAL_INT));
-    args.push_back(toType(VAL_INT));
-    FunctionType *ft = FunctionType::get(retType, args, false);
-    FunctionType *tt = FunctionType::get(Type::getVoidTy(C), vector<Type*>(1, toType(VAL_INT)), false);
-    sadd = Function::Create(ft, Function::ExternalLinkage, "llvm.sadd.with.overflow.i64", &*calcc::M);
-    ssub = Function::Create(ft, Function::ExternalLinkage, "llvm.ssub.with.overflow.i64", &*calcc::M);
-    smul = Function::Create(ft, Function::ExternalLinkage, "llvm.smul.with.overflow.i64", &*calcc::M);
+    FunctionType *tt = FunctionType::get(Type::getVoidTy(C), ArrayRef<Type*>(toType(VAL_INT)), false);
+    sadd = Intrinsic::getDeclaration(&*calcc::M,Intrinsic::sadd_with_overflow,ArrayRef<Type*>(toType(VAL_INT)));
+    ssub = Intrinsic::getDeclaration(&*calcc::M,Intrinsic::ssub_with_overflow,ArrayRef<Type*>(toType(VAL_INT)));
+    smul = Intrinsic::getDeclaration(&*calcc::M,Intrinsic::smul_with_overflow,ArrayRef<Type*>(toType(VAL_INT)));
     trap = Function::Create(tt, Function::ExternalLinkage, "overflow_fail", &*calcc::M);
   }
   run(e, vmap);
